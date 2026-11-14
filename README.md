@@ -49,10 +49,12 @@ entram na sessão por `--append-system-prompt-file`.
 | Arquivo | Vai para | Papel |
 |---|---|---|
 | [`channel/iniciar.cmd`](channel/iniciar.cmd) | `%USERPROFILE%\.claude\channels\telegram\` | Abre a sessão com o canal, o plugin e as instruções de voz |
-| [`channel/settings-sessao.json`](channel/settings-sessao.json) | idem | Liga o plugin só nesta sessão |
+| [`channel/settings-sessao.json`](channel/settings-sessao.json) | idem | Só nesta sessão: liga o plugin, os hooks do "digitando" e a permissão do `claude_sessoes.py` |
+| [`channel/reiniciar.cmd`](channel/reiniciar.cmd) | idem | Zera a sessão: encerra, reabre pelo `iniciar.cmd` e avisa no Telegram |
 | [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) | idem | Regras da sessão: como receber e responder em voz |
 | [`channel/.env.example`](channel/.env.example) | idem, como `.env` | Modelo do arquivo do token do bot |
-| [`scripts/telegram_voz.py`](scripts/telegram_voz.py) | `%USERPROFILE%\.claude\scripts\` | Transcreve, sintetiza e envia voz; só biblioteca padrão |
+| [`scripts/telegram_voz.py`](scripts/telegram_voz.py) | `%USERPROFILE%\.claude\scripts\` | Transcreve, sintetiza e envia voz, mantém o "digitando" e zera a sessão; só biblioteca padrão |
+| [`scripts/claude_sessoes.py`](scripts/claude_sessoes.py) | idem | Abre e conduz sessões novas do Claude em segundo plano |
 | [`docs/setup-windows.md`](docs/setup-windows.md) | | Instalação passo a passo e problemas conhecidos |
 | [`docs/originais/`](docs/originais/) | | Guia genérico em inglês que serviu de ponto de partida |
 
@@ -64,9 +66,10 @@ Python 3.10+ e o VoiceStudio. Os detalhes de cada passo estão em
 
 ```cmd
 mkdir "%USERPROFILE%\.claude\channels\telegram" "%USERPROFILE%\.claude\scripts"
-copy channel\iniciar.cmd channel\settings-sessao.json channel\instrucoes-voz.md "%USERPROFILE%\.claude\channels\telegram\"
-copy scripts\telegram_voz.py "%USERPROFILE%\.claude\scripts\"
+copy channel\iniciar.cmd channel\reiniciar.cmd channel\settings-sessao.json channel\instrucoes-voz.md "%USERPROFILE%\.claude\channels\telegram\"
+copy scripts\telegram_voz.py scripts\claude_sessoes.py "%USERPROFILE%\.claude\scripts\"
 python -I "%USERPROFILE%\.claude\scripts\telegram_voz.py" --demo
+python -I "%USERPROFILE%\.claude\scripts\claude_sessoes.py" --demo
 ```
 
 Depois:
@@ -91,6 +94,8 @@ telegram_voz.py amostra <arquivo.ogg>        lê o texto do stdin e grava o áud
 telegram_voz.py vozes                        lista as vozes do VoiceStudio
 telegram_voz.py voz <voice_id> [modelo]      escolhe a voz
 telegram_voz.py modo <chat_id> [texto|audio] lê ou troca o modo de resposta do chat
+telegram_voz.py digitando [parar]            hook: mantém o "digitando" ligado enquanto a sessão trabalha
+telegram_voz.py reiniciar                    zera a sessão do Telegram depois do turno atual
 telegram_voz.py --demo                       auto-check, sem rede
 ```
 
@@ -100,6 +105,27 @@ telegram_voz.py --demo                       auto-check, sem rede
 | `TELEGRAM_VOZ_IDIOMA` | `pt` | Idioma da transcrição e da fala |
 | `TELEGRAM_STATE_DIR` | `%USERPROFILE%\.claude\channels\telegram` | Pasta do canal, a mesma variável que o plugin usa |
 | `TELEGRAM_BOT_TOKEN` | lido do `.env` | Token do bot; o script nunca o imprime |
+
+## Além da voz
+
+| Função | Como pedir no Telegram | Como funciona |
+|---|---|---|
+| **Sessões novas** | "abre uma sessão nova e..." | `claude_sessoes.py nova` abre outra sessão do Claude com `claude --bg`, sem o contexto da conversa do Telegram. Dá para abrir várias, cada uma com o próprio id |
+| **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e o começo da última resposta |
+| **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
+| **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
+| **Zerar a conversa** | "zera você" | `telegram_voz.py reiniciar` espera o turno acabar, fecha a sessão, reabre pelo `iniciar.cmd`, e o bot avisa que voltou |
+
+```text
+claude_sessoes.py nova <nome> <pasta>   prompt pelo stdin; abre a sessão em segundo plano
+claude_sessoes.py enviar <id>           mensagem pelo stdin; recusa se a sessão ainda estiver trabalhando
+claude_sessoes.py ler <id>              estado e última resposta, lidos do transcript
+claude_sessoes.py listar                sessões em segundo plano e o estado de cada uma
+claude_sessoes.py parar <id>            encerra; a conversa fica salva
+claude_sessoes.py --demo                auto-check, sem rede
+```
+
+No PC, qualquer sessão aberta assim abre no terminal com `claude attach <id>`.
 
 ## VoiceStudio
 
