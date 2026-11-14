@@ -1,0 +1,8 @@
+# Segredos e estado do canal: nunca versionar
+.env
+access.json
+approved/
+inbox/
+state/
+bot.pid
+__pycache__/
