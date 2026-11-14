@@ -94,25 +94,31 @@ def sintetizar(texto: str, destino: Path) -> None:
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(entrada), "-c:a", "libopus", "-b:a", "48k", str(destino)], check=True)
 
 
-def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
-    with tempfile.TemporaryDirectory() as pasta:
-        ogg = Path(pasta) / "voz.ogg"
-        sintetizar(texto, ogg)
-        campos = {"chat_id": chat_id}
-        if responder_a:
-            campos["reply_parameters"] = json.dumps({"message_id": int(responder_a)})
-        corpo, tipo = multipart(campos, {"voice": ("voz.ogg", ogg.read_bytes(), "audio/ogg")})
-    url = f"https://api.telegram.org/bot{chave('TELEGRAM_BOT_TOKEN')}/sendVoice"
-    resultado = json.loads(requisitar(url, {"Content-Type": tipo}, corpo))
-    if not resultado.get("ok"):
-        sys.exit(f"Telegram recusou: {resultado.get('description')}")
-
-
 def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> None:
     url = f"https://api.telegram.org/bot{chave('TELEGRAM_BOT_TOKEN')}/{metodo}"
     resultado = json.loads(requisitar(url, {"Content-Type": tipo}, corpo))
     if not resultado.get("ok"):
         sys.exit(f"Telegram recusou: {resultado.get('description')}")
+
+
+def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
+    # O laço do "digitando" lê a ação a cada envio: durante a síntese o chat mostra "gravando áudio".
+    gravar_estado("digitando_acao", "record_voice")
+    try:
+        try:
+            telegram("sendChatAction", json.dumps({"chat_id": chat_id, "action": "record_voice"}).encode())
+        except (SystemExit, OSError):
+            pass  # sem o indicador o áudio ainda sai
+        with tempfile.TemporaryDirectory() as pasta:
+            ogg = Path(pasta) / "voz.ogg"
+            sintetizar(texto, ogg)
+            campos = {"chat_id": chat_id}
+            if responder_a:
+                campos["reply_parameters"] = json.dumps({"message_id": int(responder_a)})
+            corpo, tipo = multipart(campos, {"voice": ("voz.ogg", ogg.read_bytes(), "audio/ogg")})
+        telegram("sendVoice", corpo, tipo)
+    finally:
+        gravar_estado("digitando_acao", "typing")
 
 
 def chat_do_hook(evento: dict) -> str | None:
@@ -145,7 +151,8 @@ def digitando_laco(chat: str, ficha: str) -> None:
     fim = time.time() + DIGITANDO_TETO
     while time.time() < fim and ler_estado("digitando", "") == ficha:
         try:
-            telegram("sendChatAction", json.dumps({"chat_id": chat, "action": "typing"}).encode())
+            acao = ler_estado("digitando_acao", "typing")
+            telegram("sendChatAction", json.dumps({"chat_id": chat, "action": acao}).encode())
         except (SystemExit, OSError):
             pass  # falha de rede num envio não derruba o indicador
         if ler_estado("digitando", "") != ficha:
