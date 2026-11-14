@@ -165,6 +165,36 @@ def digitando_laco(chat: str, ficha: str) -> None:
         time.sleep(DIGITANDO_INTERVALO)
 
 
+def sessao_telegram() -> list[dict]:
+    r = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return [a for a in json.loads(r.stdout or "[]") if a.get("name") == "telegram" and a.get("kind") == "interactive"]
+
+
+def reiniciar_agora() -> None:
+    chat = chat_do_hook({})
+    sessoes = sessao_telegram()
+    if len(sessoes) != 1:
+        return mandar(chat, f"Não zerei: achei {len(sessoes)} sessões com o nome telegram.")
+    # Espera o turno que pediu o reinício acabar, para a resposta dele (texto e áudio) sair antes.
+    for _ in range(90):
+        time.sleep(2)
+        atual = sessao_telegram()
+        if not atual or atual[0].get("status") == "idle":
+            break
+    else:
+        return mandar(chat, "Não zerei: a sessão continuou ocupada por 3 minutos.")
+    bot = PASTA / "bot.pid"
+    antes = bot.stat().st_mtime if bot.exists() else 0
+    subprocess.run(["taskkill", "/PID", str(sessoes[0]["pid"]), "/T", "/F"], capture_output=True)
+    gravar_estado("digitando", "")
+    subprocess.Popen(["explorer.exe", str(PASTA / "iniciar.cmd")])
+    for _ in range(60):
+        time.sleep(2)
+        if bot.exists() and bot.stat().st_mtime > antes:
+            return mandar(chat, "Voltei, com a conversa zerada.")
+    mandar(chat, "Reabri a sessão, mas o bot não subiu em 2 minutos. Confira no PC.")
+
+
 def vozes() -> None:
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
     for voz in dados.get("voices", []) if isinstance(dados, dict) else dados:
@@ -194,6 +224,7 @@ USO = """uso: telegram_voz.py <comando>
   vozes                              lista as vozes do VoiceStudio
   voz <voice_id> [modelo]            escolhe a voz (padrão: 'default' no motor ativo)
   digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
+  reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
   --demo                             auto-check, sem rede"""
 
 
@@ -219,6 +250,12 @@ def main(argumentos: list[str]) -> None:
             digitando(json.loads(sys.stdin.buffer.read() or b"{}"))
     elif comando == "digitando-laco" and len(resto) == 2:
         digitando_laco(*resto)
+    elif comando == "reiniciar":
+        # Pelo explorer o reinício nasce fora da árvore desta sessão; filho dela, o taskkill /T o mataria junto.
+        subprocess.Popen(["explorer.exe", str(PASTA / "reiniciar.cmd")])
+        print("reinício agendado: a sessão fecha quando este turno terminar e volta sozinha")
+    elif comando == "reiniciar-agora":
+        reiniciar_agora()
     elif comando == "vozes":
         vozes()
     elif comando == "voz" and resto:

@@ -49,6 +49,15 @@ FIM
 - Não verificar em laço: quando uma sessão termina um turno, o próprio bot manda a ele um aviso com o começo da resposta. Ler a sessão só quando ele perguntar por ela.
 - No PC, ele abre qualquer uma com `claude attach <id>`.
 
+## Zerar esta sessão
+
+Quando ele pedir para zerar, limpar ou reiniciar esta conversa do Telegram (não uma sessão nova):
+
+1. Responder em texto e áudio que vai zerar e que volta em cerca de um minuto.
+2. Por último, rodar `python -I ~/.claude/scripts/telegram_voz.py reiniciar` e encerrar o turno sem mais nada.
+
+O reinício espera este turno acabar, fecha esta sessão, abre outra e o bot manda "Voltei, com a conversa zerada.".
+
 ## Trabalho longo
 
 Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que vai fazer. No fim, o resultado no mesmo formato da pergunta.
