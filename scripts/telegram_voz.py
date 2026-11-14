@@ -4,9 +4,11 @@ Telegram só mostra como mensagem de voz um OGG/Opus; o VoiceStudio devolve mp3,
 VoiceStudio em 127.0.0.1:3900 sem chave (loopback); o token do bot vem do .env do canal e nunca é impresso."""
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -17,6 +19,8 @@ PASTA = Path(os.environ.get("TELEGRAM_STATE_DIR") or Path.home() / ".claude" / "
 ESTADO = PASTA / "state"
 VOICESTUDIO = os.environ.get("VOICESTUDIO_URL", "http://127.0.0.1:3900").rstrip("/")
 IDIOMA = os.environ.get("TELEGRAM_VOZ_IDIOMA", "pt")
+DIGITANDO_INTERVALO = 4  # o "digitando" do Telegram some sozinho em ~5 s
+DIGITANDO_TETO = 15 * 60  # ponytail: teto fixo se o Stop não vier; turno mais longo que isso perde o indicador
 
 
 def chave(nome: str) -> str:
@@ -104,6 +108,52 @@ def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
         sys.exit(f"Telegram recusou: {resultado.get('description')}")
 
 
+def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> None:
+    url = f"https://api.telegram.org/bot{chave('TELEGRAM_BOT_TOKEN')}/{metodo}"
+    resultado = json.loads(requisitar(url, {"Content-Type": tipo}, corpo))
+    if not resultado.get("ok"):
+        sys.exit(f"Telegram recusou: {resultado.get('description')}")
+
+
+def chat_do_hook(evento: dict) -> str | None:
+    achado = re.search(r'<channel source="telegram"[^>]*\bchat_id="(-?\d+)"', evento.get("prompt", ""))
+    if achado:
+        gravar_estado("ultimo_chat", achado.group(1))
+        return achado.group(1)
+    if ultimo := ler_estado("ultimo_chat", ""):
+        return ultimo
+    permitidos = json.loads((PASTA / "access.json").read_text(encoding="utf-8")).get("allowFrom", [])
+    return str(permitidos[0]) if len(permitidos) == 1 else None
+
+
+def digitando(evento: dict) -> None:
+    marca = ESTADO / "digitando"
+    if marca.exists() and marca.read_text(encoding="utf-8") and time.time() - marca.stat().st_mtime < 3 * DIGITANDO_INTERVALO:
+        return  # laço vivo: ele regrava a marca a cada envio
+    chat = chat_do_hook(evento)
+    if not chat:
+        return
+    ficha = uuid.uuid4().hex
+    gravar_estado("digitando", ficha)
+    sem_janela = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+    # Saídas em DEVNULL: herdando o stdout do hook, o Claude Code esperaria o laço terminar.
+    subprocess.Popen([sys.executable, "-I", __file__, "digitando-laco", chat, ficha], creationflags=sem_janela,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+
+
+def digitando_laco(chat: str, ficha: str) -> None:
+    fim = time.time() + DIGITANDO_TETO
+    while time.time() < fim and ler_estado("digitando", "") == ficha:
+        try:
+            telegram("sendChatAction", json.dumps({"chat_id": chat, "action": "typing"}).encode())
+        except (SystemExit, OSError):
+            pass  # falha de rede num envio não derruba o indicador
+        if ler_estado("digitando", "") != ficha:
+            return  # o Stop chegou durante o envio: não ressuscitar a marca
+        gravar_estado("digitando", ficha)
+        time.sleep(DIGITANDO_INTERVALO)
+
+
 def vozes() -> None:
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
     for voz in dados.get("voices", []) if isinstance(dados, dict) else dados:
@@ -120,6 +170,8 @@ def demo() -> None:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"
         assert modo("42", "audio") == "audio" and modo("42") == "audio"
+        assert chat_do_hook({"prompt": '<channel source="telegram" chat_id="123" message_id="9">oi'}) == "123"
+        assert chat_do_hook({"tool_name": "Bash"}) == "123"  # PreToolUse não traz o prompt: usa o último chat
     print("ok")
 
 
@@ -130,6 +182,7 @@ USO = """uso: telegram_voz.py <comando>
   amostra <arquivo.ogg>              lê o texto do stdin e grava o áudio, sem Telegram
   vozes                              lista as vozes do VoiceStudio
   voz <voice_id> [modelo]            escolhe a voz (padrão: 'default' no motor ativo)
+  digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
   --demo                             auto-check, sem rede"""
 
 
@@ -148,6 +201,13 @@ def main(argumentos: list[str]) -> None:
         falar(resto[0], sys.stdin.buffer.read().decode("utf-8").strip(), resto[1] if len(resto) > 1 else None)
     elif comando == "amostra" and len(resto) == 1:
         sintetizar(sys.stdin.buffer.read().decode("utf-8").strip(), Path(resto[0]))
+    elif comando == "digitando":  # hook: UserPromptSubmit e PreToolUse ligam, Stop desliga
+        if resto == ["parar"]:
+            gravar_estado("digitando", "")
+        else:
+            digitando(json.loads(sys.stdin.buffer.read() or b"{}"))
+    elif comando == "digitando-laco" and len(resto) == 2:
+        digitando_laco(*resto)
     elif comando == "vozes":
         vozes()
     elif comando == "voz" and resto:

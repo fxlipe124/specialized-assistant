@@ -2,6 +2,17 @@
   "enabledPlugins": {
     "telegram@claude-plugins-official": true
   },
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "python -I ~/.claude/scripts/telegram_voz.py digitando" }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "python -I ~/.claude/scripts/telegram_voz.py digitando" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "python -I ~/.claude/scripts/telegram_voz.py digitando parar" }] }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(python -I ~/.claude/scripts/claude_sessoes.py *)"
