@@ -9,6 +9,9 @@ import time
 from pathlib import Path
 
 PROJETOS = Path.home() / ".claude" / "projects"
+# Stop hook só das sessões abertas aqui; o `--bg --resume` não guarda o --settings, então `enviar` repassa.
+AVISO = json.dumps({"hooks": {"Stop": [{"hooks": [
+    {"type": "command", "command": f"python -I {Path(__file__).as_posix()} avisar"}]}]}})
 USO = """uso:
   nova <nome> <pasta>   (prompt pelo stdin)  abre sessão nova em segundo plano
   enviar <id>           (mensagem pelo stdin) continua a sessão; recusa se ela estiver trabalhando
@@ -47,7 +50,7 @@ def ultima_resposta(linhas) -> str:
 
 
 def nova(nome: str, pasta: str, prompt: str) -> None:
-    print(claude("--bg", "--name", nome, "--permission-mode", "auto", "--", prompt, cwd=pasta))
+    print(claude("--bg", "--name", nome, "--permission-mode", "auto", "--settings", AVISO, "--", prompt, cwd=pasta))
 
 
 def enviar(ident: str, mensagem: str) -> None:
@@ -62,7 +65,23 @@ def enviar(ident: str, mensagem: str) -> None:
             time.sleep(0.5)
         else:
             sys.exit(f"{s['id']} não encerrou em 30 s; mensagem não enviada")
-    print(claude("--bg", "--resume", s["sessionId"], "--", mensagem, cwd=s["cwd"]))
+    print(claude("--bg", "--resume", s["sessionId"], "--settings", AVISO, "--", mensagem, cwd=s["cwd"]))
+
+
+def avisar(evento: dict) -> None:
+    sys.path.insert(0, str(Path(__file__).parent))  # -I tira a pasta do script do sys.path
+    import telegram_voz
+
+    chat = telegram_voz.chat_do_hook({})
+    transcript = Path(evento.get("transcript_path", ""))
+    if not chat or not transcript.is_file():
+        return
+    sid = evento.get("session_id", "")
+    nome = next((a.get("name", "") for a in sessoes() if a["sessionId"] == sid), "")
+    resposta = ultima_resposta(transcript.open(encoding="utf-8")) or "(sem texto)"
+    if len(resposta) > 1500:
+        resposta = resposta[:1500] + f"…\n\n(resposta inteira: ler {sid[:8]})"
+    telegram_voz.mandar(chat, f"Sessão {nome} ({sid[:8]}) terminou:\n\n{resposta}")
 
 
 def ler(ident: str) -> None:
@@ -94,5 +113,6 @@ if __name__ == "__main__":
         case ["ler", ident]: ler(ident)
         case ["listar"]: [print(f"{s['id']}  {s.get('state', '?'):8} {s.get('name', '')}  ({s['cwd']})") for s in sessoes()]
         case ["parar", ident]: print(claude("stop", sessao(ident)["id"]))
+        case ["avisar"]: avisar(json.loads(sys.stdin.buffer.read() or b"{}"))
         case ["--demo"]: demo()
         case _: sys.exit(USO)

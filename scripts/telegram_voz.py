@@ -101,6 +101,10 @@ def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> None:
         sys.exit(f"Telegram recusou: {resultado.get('description')}")
 
 
+def mandar(chat_id: str, texto: str) -> None:
+    telegram("sendMessage", json.dumps({"chat_id": chat_id, "text": texto[:4096]}).encode())
+
+
 def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
     # O laço do "digitando" lê a ação a cada envio: durante a síntese o chat mostra "gravando áudio".
     gravar_estado("digitando_acao", "record_voice")

@@ -46,7 +46,7 @@ FIM
 - Responder com o id e o nome que o script imprimir.
 - `listar` mostra as sessões e o estado (`working`, `done`, `stopped`); `ler <id>` traz a última resposta; `parar <id>` encerra.
 - Mensagem dele para uma sessão aberta: `enviar <id>` com o texto pelo stdin, no mesmo formato do `nova`. Se ela ainda estiver trabalhando, o script recusa: avisar e perguntar se espera ou se para.
-- Não verificar em laço: ler a sessão quando ele perguntar por ela.
+- Não verificar em laço: quando uma sessão termina um turno, o próprio bot manda a ele um aviso com o começo da resposta. Ler a sessão só quando ele perguntar por ela.
 - No PC, ele abre qualquer uma com `claude attach <id>`.
 
 ## Trabalho longo
