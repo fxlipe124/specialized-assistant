@@ -60,14 +60,25 @@ Por isso:
 Desligar o plugin no global não derruba servidor de sessão que já estava aberta: feche
 essas sessões.
 
+O mesmo `settings-sessao.json` traz os hooks do "digitando" e a permissão do
+`claude_sessoes.py`, com caminhos em `~/.claude/scripts/`. Testado em 14/11/2026, no Claude
+Code 2.1.325: os hooks ligaram o "digitando", que se renovou a cada 4 s, e o `Stop` o
+desligou. A regra de permissão liberou o comando numa sessão em `--permission-mode default`;
+sem a regra, o mesmo comando foi negado.
+
 ---
 
 ## 4. Parear e trancar
 
-1. Rode `iniciar.cmd`.
-2. Mande uma DM ao bot. Ele responde com um código de 6 caracteres.
-3. No terminal da sessão: `/telegram:access pair <codigo>`.
-4. Trancar: `/telegram:access policy allowlist`. Daí em diante, quem não está na lista é
+1. Copie o modelo, que já vem em pareamento e com a reação 👀 ao receber:
+   ```cmd
+   copy channel\access.example.json "%USERPROFILE%\.claude\channels\telegram\access.json"
+   ```
+   Sem o arquivo, o plugin também começa em pareamento, só que sem a reação.
+2. Rode `iniciar.cmd`.
+3. Mande uma DM ao bot. Ele responde com um código de 6 caracteres.
+4. No terminal da sessão: `/telegram:access pair <codigo>`.
+5. Trancar: `/telegram:access policy allowlist`. Daí em diante, quem não está na lista é
    ignorado em silêncio.
 
 A skill `access` só aceita comando digitado no terminal, nunca um pedido que chegou pelo

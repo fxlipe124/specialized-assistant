@@ -53,6 +53,7 @@ entram na sessão por `--append-system-prompt-file`.
 | [`channel/reiniciar.cmd`](channel/reiniciar.cmd) | idem | Zera a sessão: encerra, reabre pelo `iniciar.cmd` e avisa no Telegram |
 | [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) | idem | Regras da sessão: como receber e responder em voz |
 | [`channel/.env.example`](channel/.env.example) | idem, como `.env` | Modelo do arquivo do token do bot |
+| [`channel/access.example.json`](channel/access.example.json) | idem, como `access.json` | Começa em pareamento e reage com 👀 ao receber |
 | [`scripts/telegram_voz.py`](scripts/telegram_voz.py) | `%USERPROFILE%\.claude\scripts\` | Transcreve, sintetiza e envia voz, mantém o "digitando" e zera a sessão; só biblioteca padrão |
 | [`scripts/claude_sessoes.py`](scripts/claude_sessoes.py) | idem | Abre e conduz sessões novas do Claude em segundo plano |
 | [`docs/setup-windows.md`](docs/setup-windows.md) | | Instalação passo a passo e problemas conhecidos |
@@ -67,6 +68,7 @@ Python 3.10+ e o VoiceStudio. Os detalhes de cada passo estão em
 ```cmd
 mkdir "%USERPROFILE%\.claude\channels\telegram" "%USERPROFILE%\.claude\scripts"
 copy channel\iniciar.cmd channel\reiniciar.cmd channel\settings-sessao.json channel\instrucoes-voz.md "%USERPROFILE%\.claude\channels\telegram\"
+copy channel\access.example.json "%USERPROFILE%\.claude\channels\telegram\access.json"
 copy scripts\telegram_voz.py scripts\claude_sessoes.py "%USERPROFILE%\.claude\scripts\"
 python -I "%USERPROFILE%\.claude\scripts\telegram_voz.py" --demo
 python -I "%USERPROFILE%\.claude\scripts\claude_sessoes.py" --demo
