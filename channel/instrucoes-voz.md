@@ -32,6 +32,23 @@ FIM
 - Resposta longa: o áudio leva o resumo (até uns 40 segundos de fala) e o detalhe vai em texto.
 - Se o script falhar (VoiceStudio fechado ou porta 3900 sem resposta), responder em texto e avisar numa linha que a voz está fora.
 
+## Sessões novas
+
+Quando ele pedir uma sessão nova, zerada ou separada, abrir outra sessão do Claude em segundo plano, sem o contexto desta conversa, pelo script:
+
+```bash
+python -I ~/.claude/scripts/claude_sessoes.py nova <nome-curto> <pasta> <<'FIM'
+pedido dele, completo, porque a sessão nova não sabe nada desta conversa
+FIM
+```
+
+- Pasta padrão: a pasta onde esta sessão abriu, a menos que ele diga outra.
+- Responder com o id e o nome que o script imprimir.
+- `listar` mostra as sessões e o estado (`working`, `done`, `stopped`); `ler <id>` traz a última resposta; `parar <id>` encerra.
+- Mensagem dele para uma sessão aberta: `enviar <id>` com o texto pelo stdin, no mesmo formato do `nova`. Se ela ainda estiver trabalhando, o script recusa: avisar e perguntar se espera ou se para.
+- Não verificar em laço: ler a sessão quando ele perguntar por ela.
+- No PC, ele abre qualquer uma com `claude attach <id>`.
+
 ## Trabalho longo
 
 Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que vai fazer. No fim, o resultado no mesmo formato da pergunta.
