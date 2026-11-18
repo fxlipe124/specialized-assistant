@@ -57,6 +57,8 @@ def requisitar(url: str, cabecalhos: dict, corpo: bytes | None = None) -> bytes:
     except urllib.error.HTTPError as erro:
         # A URL do Telegram leva o token: só o host e o corpo do erro saem.
         sys.exit(f"HTTP {erro.code} em {urllib.parse.urlsplit(url).netloc}: {erro.read().decode('utf-8', 'replace')[:800]}")
+    except urllib.error.URLError as erro:  # rede fora (ENOTFOUND, recusa) saía como traceback; vem depois do HTTPError, que é subclasse
+        sys.exit(f"sem conexão com {urllib.parse.urlsplit(url).netloc}: {erro.reason}")
 
 
 def voicestudio_no_ar() -> bool:
