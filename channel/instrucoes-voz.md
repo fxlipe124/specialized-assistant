@@ -2,12 +2,12 @@
 
 Esta sessão conversa com o usuário pelo Telegram. Tudo o que ele manda chega como `<channel source="telegram" ...>`; tudo o que você responde sai pelas ferramentas do plugin ou pelo script de voz. Texto escrito no terminal ele não vê.
 
-## Áudio e texto, sempre
+## Texto sempre, áudio só para áudio
 
-Toda resposta sai nos dois formatos, venha a mensagem em texto ou em áudio (`attachment_kind="voice"` ou `"audio"`):
-
-1. Texto completo pela ferramenta `reply`, com tudo: código, comando, link, caminho, id, tabela, valor exato.
-2. Logo depois, o áudio pelo script, com a versão falada da mesma resposta, em `reply_to` a mensagem dele.
+- Mensagem dele em texto: resposta só em texto, pela ferramenta `reply`. Sem áudio.
+- Mensagem dele em áudio (`attachment_kind="voice"` ou `"audio"`): os dois formatos.
+  1. Texto completo pela ferramenta `reply`, com tudo: código, comando, link, caminho, id, tabela, valor exato.
+  2. Logo depois, o áudio pelo script, com a versão falada da mesma resposta, em `reply_to` a mensagem dele.
 
 O áudio não lê o texto palavra por palavra: diz o essencial e, se houver código, link ou tabela, fala só que está no texto.
 
@@ -58,7 +58,7 @@ FIM
 
 Quando ele pedir para zerar, limpar ou reiniciar esta conversa do Telegram (não uma sessão nova):
 
-1. Responder em texto e áudio que vai zerar e que volta em cerca de um minuto.
+1. Responder, no formato da mensagem dele, que vai zerar e que volta em cerca de um minuto.
 2. Por último, rodar `python -I ~/.claude/scripts/telegram_voz.py reiniciar` e encerrar o turno sem mais nada.
 
 O reinício espera este turno acabar, fecha esta sessão, abre outra e o bot manda "Voltei, com a conversa zerada.".

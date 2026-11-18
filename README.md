@@ -15,7 +15,7 @@
 
 Você manda um áudio no Telegram. O Claude Code transcreve, trabalha no seu computador e
 responde duas vezes: um texto completo, com código, links e caminhos, e um áudio curto com o
-essencial. A voz e a transcrição rodam localmente no [VoiceStudio](#voicestudio): nenhum
+essencial. Mensagem em texto recebe só texto. A voz e a transcrição rodam localmente no [VoiceStudio](#voicestudio): nenhum
 áudio sai da máquina, e não há chave de API de voz para pagar.
 
 ## Como funciona
@@ -36,11 +36,11 @@ flowchart LR
 1. O plugin oficial `telegram@claude-plugins-official` recebe a mensagem e a entrega à sessão.
 2. Se for áudio, a sessão baixa o arquivo e chama `telegram_voz.py transcrever`, que manda o
    áudio ao Whisper do VoiceStudio.
-3. A resposta sai em texto pela ferramenta `reply` e, logo depois, em áudio por
+3. A resposta sai em texto pela ferramenta `reply` e, se a mensagem veio em áudio, logo depois em áudio por
    `telegram_voz.py falar`: o VoiceStudio sintetiza em mp3, o ffmpeg converte para
    OGG/Opus, e o script envia como mensagem de voz nativa.
 
-As regras de comportamento (sempre texto e áudio, áudio curto e sem markdown, avisar antes
+As regras de comportamento (texto sempre e áudio só para áudio, áudio curto e sem markdown, avisar antes
 de trabalho longo) ficam em [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) e
 entram na sessão por `--append-system-prompt-file`.
 
