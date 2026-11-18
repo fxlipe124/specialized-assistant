@@ -138,11 +138,12 @@ def sintetizar(texto: str, destino: Path) -> None:
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(entrada), "-c:a", "libopus", "-b:a", "48k", str(destino)], check=True)
 
 
-def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> None:
+def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> dict | bool:
     url = f"https://api.telegram.org/bot{chave('TELEGRAM_BOT_TOKEN')}/{metodo}"
     resultado = json.loads(requisitar(url, {"Content-Type": tipo}, corpo))
     if not resultado.get("ok"):
         sys.exit(f"Telegram recusou: {resultado.get('description')}")
+    return resultado["result"]
 
 
 def mandar(chat_id: str, texto: str, markdown: bool = False) -> None:
@@ -323,6 +324,20 @@ def perguntar(chat_id: str, pergunta: str, opcoes: list[str]) -> None:
     telegram("sendMessage", json.dumps({"chat_id": chat_id, "text": pergunta, "reply_markup": teclado(opcoes)}).encode())
 
 
+def pedido_rico(chat_id: str, markdown: str, responder_a: str | None = None) -> dict:
+    # Mensagem rica (Bot API 10.4): tabela, título, task list e <details> em markdown comum, sem escape, até 32768 caracteres.
+    pedido = {"chat_id": int(chat_id), "rich_message": {"markdown": markdown}}
+    if responder_a:
+        pedido["reply_parameters"] = {"message_id": int(responder_a), "allow_sending_without_reply": True}
+    return pedido
+
+
+def responder(chat_id: str, markdown: str, responder_a: str | None = None) -> None:
+    mensagem = telegram("sendRichMessage", json.dumps(pedido_rico(chat_id, markdown, responder_a)).encode())
+    gravar_estado("digitando_status", "")  # sem isso o laço do "digitando" traz o rascunho de volta em até 4 s
+    print(f"message_id {mensagem['message_id']}")
+
+
 PERFIL = {"setMyShortDescription": {"short_description": "Claude Code no seu computador, por texto e áudio."},
           "setMyDescription": {"description": "Converse com o Claude Code que roda no seu computador, por texto ou áudio: "
                                "ele lê e edita arquivos, roda comandos e abre sessões em segundo plano. "
@@ -358,6 +373,8 @@ def demo() -> None:
     assert andamento({"tool_name": "mcp__plugin_telegram_telegram__reply", "tool_input": {}}) == ""
     assert andamento({"tool_name": "mcp__x__busca", "tool_input": {}}) == "busca"
     assert [b.get("style") for b in teclado(["Sobe", "Ainda não"])["keyboard"][0]] == ["primary", None]
+    assert pedido_rico("42", "# oi") == {"chat_id": 42, "rich_message": {"markdown": "# oi"}}
+    assert pedido_rico("42", "x", "7")["reply_parameters"] == {"message_id": 7, "allow_sending_without_reply": True}
     assert all(len(c) <= limite for c, limite in ((PERFIL["setMyShortDescription"]["short_description"], 120),
                                                   (PERFIL["setMyDescription"]["description"], 512)))
     with tempfile.TemporaryDirectory() as pasta:
@@ -379,6 +396,7 @@ USO = """uso: telegram_voz.py <comando>
   digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
   reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
   saude                              bot, VoiceStudio e sessões, sem mexer em nada
+  responder <chat_id> [reply_to]     lê markdown do stdin e manda como mensagem rica (tabela, <details>, sem escape)
   perguntar <chat_id> <opção>...     lê a pergunta do stdin e manda com um botão por opção (a primeira sai azul)
   perfil                             grava a descrição do bot (uma vez basta)
   menu                               registra /zerar, /sessoes e /saude no menu do bot (uma vez basta)
@@ -417,6 +435,8 @@ def main(argumentos: list[str]) -> None:
         reiniciar_agora()
     elif comando == "saude":
         saude()
+    elif comando == "responder" and len(resto) in (1, 2):
+        responder(resto[0], sys.stdin.buffer.read().decode("utf-8").strip(), resto[1] if len(resto) == 2 else None)
     elif comando == "perguntar" and len(resto) >= 2:
         perguntar(resto[0], sys.stdin.buffer.read().decode("utf-8").strip(), resto[1:])
     elif comando == "perfil":

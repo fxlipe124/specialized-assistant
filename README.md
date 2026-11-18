@@ -28,7 +28,8 @@ flowchart LR
     C -- "transcrever" --> V["VoiceStudio<br/>127.0.0.1:3900"]
     C -- "falar" --> V
     V -- "mp3" --> F["ffmpeg → OGG/Opus"]
-    C -- "reply (texto)" --> S
+    C -- "responder (texto)" --> B
+    C -- "reply (arquivos)" --> S
     F -- "sendVoice" --> B
     B --> U
 ```
@@ -36,11 +37,11 @@ flowchart LR
 1. O plugin oficial `telegram@claude-plugins-official` recebe a mensagem e a entrega à sessão.
 2. Se for áudio, a sessão baixa o arquivo e chama `telegram_voz.py transcrever`, que manda o
    áudio ao Whisper do VoiceStudio.
-3. A resposta sai em texto pela ferramenta `reply` e, se a mensagem veio em áudio, logo depois em áudio por
+3. A resposta sai em texto por `telegram_voz.py responder`, como mensagem rica, e, se a mensagem veio em áudio, logo depois em áudio por
    `telegram_voz.py falar`: o VoiceStudio sintetiza em mp3, o ffmpeg converte para
    OGG/Opus, e o script envia como mensagem de voz nativa.
 
-As regras de comportamento (texto sempre e áudio só para áudio, texto curto e em MarkdownV2, áudio curto e sem markdown, avisar antes
+As regras de comportamento (texto sempre e áudio só para áudio, texto curto e em mensagem rica, áudio curto e sem markdown, avisar antes
 de trabalho longo e editar essa mesma mensagem com o andamento) ficam em [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) e
 entram na sessão por `--append-system-prompt-file`.
 
@@ -106,6 +107,7 @@ telegram_voz.py modo <chat_id> [texto|audio] lê ou troca o modo de resposta do 
 telegram_voz.py digitando [parar]            hook: mantém o "digitando" ligado enquanto a sessão trabalha
 telegram_voz.py reiniciar                    zera a sessão do Telegram depois do turno atual
 telegram_voz.py saude                        bot, VoiceStudio e sessões em segundo plano, sem mexer em nada
+telegram_voz.py responder <chat_id> [msg_id] markdown pelo stdin, como mensagem rica (tabela, <details>, sem escape)
 telegram_voz.py perguntar <chat_id> <opção>… pergunta pelo stdin, um botão por opção (a primeira sai azul)
 telegram_voz.py perfil                       grava a descrição do bot
 telegram_voz.py menu                         registra /zerar, /sessoes e /saude no menu do bot, no escopo do seu chat
@@ -128,6 +130,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 | **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta num bloco recolhível, com até 3000 caracteres: o Telegram mostra 3 linhas e abre o resto no toque |
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
 | **Rascunho ao vivo** | Aparece sozinho | A cada ferramenta, um rascunho no chat diz o que a sessão está fazendo ("Lendo telegram_voz.py", ou a descrição do comando, nunca o comando). Ele some quando a resposta chega |
+| **Mensagem rica** | Aparece sozinho | A resposta sai pelo `telegram_voz.py responder` (`sendRichMessage`, Bot API 10.4): tabela desenhada, título, pendências com caixa de seleção e `<details>` que abre no toque. Um trecho selecionado copia normal e a tabela copia separada por tabulação; o "Copy Text" da mensagem inteira troca cada tabela pela palavra "Table" |
 | **Perguntas com botões** | Aparece sozinho | Pergunta fechada sai pelo `telegram_voz.py perguntar`, com um botão por opção; o toque volta como texto comum |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
 | **Saúde** | `/saude` | `telegram_voz.py saude` diz se o bot e o VoiceStudio estão no ar, quantas sessões do Telegram estão abertas e quais sessões em segundo plano esperam por você |
