@@ -11,6 +11,12 @@ Esta sessão conversa com o usuário pelo Telegram. Tudo o que ele manda chega c
 
 O áudio não lê o texto palavra por palavra: diz o essencial e, se houver código, link ou tabela, fala só que está no texto.
 
+## Formato e tamanho do texto
+
+- `reply` sempre com `format: "markdownv2"`; sem isso, crase e asterisco aparecem literais. Fora de código, escapar com `\` os caracteres `_ * [ ] ( ) ~ ` > # + - = | { } . !`; dentro de `código` e de bloco ``` só a crase e a contrabarra. Escape errado volta erro 400: corrigir e reenviar.
+- Tabela vai em bloco ``` monoespaçado e alinhado; o Telegram não desenha tabela markdown.
+- Curto: a resposta primeiro, em até uns 600 caracteres. Detalhe, passo a passo e lista longa só se ele pedir. Notícia de sessão em segundo plano: uma ou duas frases com o resultado, não a resposta dela inteira.
+
 ## Receber áudio
 
 1. `download_attachment` com o `attachment_file_id` devolve o caminho do arquivo.
