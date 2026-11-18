@@ -1,20 +1,22 @@
-"""Sessões novas do Claude Code abertas pela sessão do Telegram, sobre o `claude --bg` nativo (v2.1.325).
+"""Sessões do Claude Code abertas ou continuadas pela sessão do Telegram, sobre o `claude --bg` nativo (v2.1.325).
 Testado em 13/11/2026: `--bg --resume` numa sessão com processo vivo abre uma cópia com outro id; só continua a mesma depois do `stop` terminar.
-O `stop` volta antes do processo morrer (a segunda tentativa imediata ainda abriu cópia), por isso `enviar` espera o pid sumir do `claude agents`.
+Em 16/11/2026 o Telegram retomou sessões abertas no app Desktop (processo `interactive`) e gerou uma cópia a cada retomada; por isso `enviar` recusa esse caso.
 `claude logs` devolve o terminal cru com ANSI; a resposta legível sai do transcript em ~/.claude/projects/*/<sessionId>.jsonl."""
 import json
+import re
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 PROJETOS = Path.home() / ".claude" / "projects"
-# Stop hook só das sessões abertas aqui; o `--bg --resume` não guarda o --settings, então `enviar` repassa.
+# Stop hook só das sessões abertas aqui. Na v2.1.327 o `--bg --resume` reaproveita o --settings salvo, e qualquer flag
+# repassada abre cópia (testado em 17/11/2026: sem flag continuou 1b834cb2; com --settings virou 32a8bf92).
 AVISO = json.dumps({"hooks": {"Stop": [{"hooks": [
     {"type": "command", "command": f"python -I {Path(__file__).as_posix()} avisar"}]}]}})
 USO = """uso:
   nova <nome> <pasta>   (prompt pelo stdin)  abre sessão nova em segundo plano
-  enviar <id>           (mensagem pelo stdin) continua a sessão; recusa se ela estiver trabalhando
+  enviar <id>           (mensagem pelo stdin) continua a mesma sessão, sem cópia; recusa se ela estiver trabalhando ou aberta no app
   ler <id>              estado e a última resposta da sessão
   listar                sessões em segundo plano
   parar <id>            encerra a sessão (a conversa fica salva)"""
@@ -27,15 +29,45 @@ def claude(*args: str, cwd: str | None = None) -> str:
     return r.stdout
 
 
+def agentes() -> list[dict]:
+    return json.loads(claude("agents", "--json", "--all"))
+
+
 def sessoes() -> list[dict]:
-    return [a for a in json.loads(claude("agents", "--json", "--all")) if a.get("kind") == "background"]
+    return [a for a in agentes() if a.get("kind") == "background"]
+
+
+def filtrar(lista: list[dict], ident: str) -> list[dict]:
+    """Pelo id primeiro; o nome só desempata quando nenhum id casa (cópias levam o texto da mensagem, com ids, no nome)."""
+    por_id = [a for a in lista if a.get("id") == ident or a["sessionId"].startswith(ident)]
+    return por_id or [a for a in lista if ident.lower() in a.get("name", "").lower()]
 
 
 def sessao(ident: str) -> dict:
-    achadas = [a for a in sessoes() if a.get("id") == ident or a["sessionId"] == ident or ident.lower() in a.get("name", "").lower()]
+    achadas = filtrar(sessoes(), ident)
     if len(achadas) != 1:
         sys.exit(f"{len(achadas)} sessões casam com {ident!r}; use o id de `listar`")
     return achadas[0]
+
+
+def alvo(ident: str) -> dict:
+    """Qualquer sessão: viva (background ou interactive) pelo `claude agents`, ou parada pelo transcript."""
+    achadas = filtrar(agentes(), ident)
+    vivas = [a for a in achadas if a.get("pid")] or achadas  # o `--all` também lista as paradas
+    if len(vivas) == 1:
+        return vivas[0]
+    if vivas:
+        sys.exit(f"{len(vivas)} sessões casam com {ident!r}; use o sessionId")
+    transcripts = list(PROJETOS.glob(f"*/{ident}*.jsonl"))
+    if len(transcripts) != 1:
+        sys.exit(f"{len(transcripts)} transcripts casam com {ident!r}; use o sessionId")
+    cwd = next((d["cwd"] for d in map(json.loads, transcripts[0].open(encoding="utf-8")) if d.get("cwd")), None)
+    return {"sessionId": transcripts[0].stem, "cwd": cwd, "id": transcripts[0].stem[:8]}
+
+
+def id_aberto(saida: str) -> str | None:
+    m = re.search(r"backgrounded\s*·\s*([0-9a-f]{8})", saida)
+    return m and m.group(1)
 
 
 def ultima_resposta(linhas) -> str:
@@ -54,18 +86,27 @@ def nova(nome: str, pasta: str, prompt: str) -> None:
 
 
 def enviar(ident: str, mensagem: str) -> None:
-    s = sessao(ident)
+    s = alvo(ident)
+    if s.get("kind") == "interactive" and s.get("pid"):
+        sys.exit(f"{s['sessionId'][:8]} ({s.get('name', '')}) está aberta no app Desktop ou num terminal (pid {s['pid']}); "
+                 "retomar daqui abriria uma cópia. Mande pelo app (ou Remote Control), ou feche a sessão lá e repita.")
     if s.get("state") == "working":
         sys.exit(f"{s['id']} ainda está trabalhando; espere terminar ou `parar` antes")
     if s.get("pid"):
         claude("stop", s["id"])
         for _ in range(60):
-            if not sessao(s["id"]).get("pid"):
+            if not any(a.get("pid") for a in agentes() if a["sessionId"] == s["sessionId"]):
                 break
             time.sleep(0.5)
         else:
             sys.exit(f"{s['id']} não encerrou em 30 s; mensagem não enviada")
-    print(claude("--bg", "--resume", s["sessionId"], "--settings", AVISO, "--", mensagem, cwd=s["cwd"]))
+    saida = claude("--bg", "--resume", s["sessionId"], "--", mensagem, cwd=s["cwd"])
+    aberto = id_aberto(saida)
+    if aberto and aberto != s["sessionId"][:8]:
+        claude("stop", aberto)
+        sys.exit(f"o Claude abriu a cópia {aberto} em vez de continuar {s['sessionId'][:8]}; parei a cópia. "
+                 "Algum processo ainda segura a sessão: confira `listar` e o app Desktop.")
+    print(saida)
 
 
 def avisar(evento: dict) -> None:
@@ -85,7 +126,7 @@ def avisar(evento: dict) -> None:
 
 
 def ler(ident: str) -> None:
-    s = sessao(ident)
+    s = alvo(ident)  # sessao() só vê background: `ler` de sessão do app dava "0 sessões casam"
     transcript = next(PROJETOS.glob(f"*/{s['sessionId']}.jsonl"), None)
     print(f"{s['id']} · {s.get('name', '')} · {s.get('state')} · {s['cwd']}")
     print(ultima_resposta(transcript.open(encoding="utf-8")) if transcript else "(sem transcript ainda)")
@@ -101,6 +142,12 @@ def demo() -> None:
         {"type": "assistant", "message": {"content": [{"type": "text", "text": "b"}]}},
     )]
     assert ultima_resposta(linhas) == "a\n\nb", ultima_resposta(linhas)
+    assert id_aberto("backgrounded · 7c95fcba\n\n  claude agents   list sessions") == "7c95fcba"
+    assert id_aberto("erro qualquer") is None
+    lista = [{"id": "9875295e", "sessionId": "9875295e-99", "name": "anuncios"},
+             {"id": "04d53cab", "sessionId": "04d53cab-41", "name": "cópias 7c95fcba e 9875295e"}]
+    assert [a["id"] for a in filtrar(lista, "9875295e")] == ["9875295e"]
+    assert [a["id"] for a in filtrar(lista, "anuncios")] == ["9875295e"]
     print("demo ok")
 
 

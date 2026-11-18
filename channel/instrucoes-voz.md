@@ -45,7 +45,11 @@ FIM
 - Pasta padrão: a pasta onde esta sessão abriu, a menos que ele diga outra.
 - Responder com o id e o nome que o script imprimir.
 - `listar` mostra as sessões e o estado (`working`, `done`, `stopped`); `ler <id>` traz a última resposta; `parar <id>` encerra.
-- Mensagem dele para uma sessão aberta: `enviar <id>` com o texto pelo stdin, no mesmo formato do `nova`. Se ela ainda estiver trabalhando, o script recusa: avisar e perguntar se espera ou se para.
+- Mensagem dele para uma sessão que já existe (aberta por aqui, do app Desktop ou da CLI): sempre `enviar <id>` com o texto pelo stdin, no mesmo formato do `nova`. Nunca chamar `claude --resume` ou `--bg --resume` direto: com a sessão aberta em outro processo, isso cria uma cópia com outro id e o trabalho some da sessão original.
+- O `enviar` recusa em três casos; nenhum deles se contorna. Avisar o usuário e perguntar como seguir:
+  - a sessão ainda está trabalhando: perguntar se espera ou se para;
+  - a sessão está aberta no app Desktop: pedir que ele mande pelo app ou pelo Remote Control, ou que feche a sessão lá;
+  - o Claude abriu uma cópia mesmo assim: o script já a parou; avisar.
 - Não verificar em laço: quando uma sessão termina um turno, o próprio bot manda a ele um aviso com o começo da resposta. Ler a sessão só quando ele perguntar por ela.
 - No PC, ele abre qualquer uma com `claude attach <id>`.
 

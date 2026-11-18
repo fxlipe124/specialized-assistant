@@ -120,7 +120,8 @@ telegram_voz.py --demo                       auto-check, sem rede
 
 ```text
 claude_sessoes.py nova <nome> <pasta>   prompt pelo stdin; abre a sessão em segundo plano
-claude_sessoes.py enviar <id>           mensagem pelo stdin; recusa se a sessão ainda estiver trabalhando
+claude_sessoes.py enviar <id>           mensagem pelo stdin; continua a mesma sessão, sem cópia. Recusa se ela
+                                        estiver trabalhando ou aberta no app Desktop, e para a cópia se o Claude abrir uma
 claude_sessoes.py ler <id>              estado e última resposta, lidos do transcript
 claude_sessoes.py listar                sessões em segundo plano e o estado de cada uma
 claude_sessoes.py parar <id>            encerra; a conversa fica salva
