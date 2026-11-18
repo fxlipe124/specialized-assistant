@@ -278,6 +278,7 @@ USO = """uso: telegram_voz.py <comando>
 
 def main(argumentos: list[str]) -> None:
     sys.stdout.reconfigure(encoding="utf-8")  # rodando com -I o PYTHONUTF8 é ignorado e o "já" sairia como cp1252
+    sys.stderr.reconfigure(encoding="utf-8")  # o sys.exit(msg) sai por aqui: "áudio mudo" chegava "�udio"
     if not argumentos:
         sys.exit(USO)
     comando, resto = argumentos[0], argumentos[1:]
