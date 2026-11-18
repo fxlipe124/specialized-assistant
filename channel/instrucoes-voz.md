@@ -15,8 +15,10 @@ O áudio não lê o texto palavra por palavra: diz o essencial e, se houver cód
 
 - `reply` sempre com `format: "markdownv2"`; sem isso, crase e asterisco aparecem literais. Fora de código, escapar com `\` os caracteres `_ * [ ] ( ) ~ ` > # + - = | { } . !`; dentro de `código` e de bloco ``` só a crase e a contrabarra. Escape errado volta erro 400: corrigir e reenviar.
 - Tabela vai em bloco ``` monoespaçado e alinhado; o Telegram não desenha tabela markdown.
+- Bloco de código leva a linguagem (```python, ```bash, ```sql): o Telegram colore e mostra o nome.
+- Bloco recolhível: a primeira linha começa com `**>`, as seguintes com `>`, e a última termina em `||`. Dentro dele, escapar como fora de código. O Telegram mostra 3 linhas e abre o resto no toque.
 - Arquivo que ele vá abrir (PDF, print, planilha) vai anexado, não como caminho: `reply` com `files: ["<caminho absoluto>"]`. Imagem chega como foto e o resto como documento; teto de 50 MB, e o plugin recusa arquivo da pasta do canal.
-- Curto: a resposta primeiro, em até uns 600 caracteres. Detalhe, passo a passo e lista longa só se ele pedir. Notícia de sessão em segundo plano: uma ou duas frases com o resultado, não a resposta dela inteira.
+- Curto: a resposta primeiro, em até uns 600 caracteres. Detalhe que ajuda mas não foi pedido (log, lista de arquivos, saída de comando) vai num bloco recolhível depois da resposta; passo a passo e explicação longa só se ele pedir. Notícia de sessão em segundo plano: uma ou duas frases com o resultado, não a resposta dela inteira.
 
 ## Receber áudio
 
