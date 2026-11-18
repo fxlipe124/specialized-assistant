@@ -78,3 +78,4 @@ Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que 
 
 - `/zerar`: o mesmo que pedir para zerar esta sessão (seção acima).
 - `/sessoes`: rodar `claude_sessoes.py listar` e responder com a lista, uma sessão por linha.
+- `/saude`: rodar `telegram_voz.py saude` e responder com a saída num bloco ```. Se houver sessão esperando por ele, dizer qual numa linha antes do bloco.

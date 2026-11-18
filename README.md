@@ -87,7 +87,7 @@ Depois:
    espera a API responder em `http://127.0.0.1:3900` (cerca de 3 min, teto de 6).
 5. **Rode** `iniciar.cmd`, mande uma DM ao bot e pareie com `/telegram:access pair <codigo>`.
    Tranque com `/telegram:access policy allowlist`.
-6. **Menu**: rode `telegram_voz.py menu` uma vez para pôr `/zerar` e `/sessoes` no botão de menu do bot. O
+6. **Menu**: rode `telegram_voz.py menu` uma vez para pôr `/zerar`, `/sessoes` e `/saude` no botão de menu do bot. O
    plugin regrava o menu dele a cada subida, mas só no escopo geral; o do seu chat tem prioridade e fica.
 
 ## O script de voz
@@ -101,7 +101,8 @@ telegram_voz.py voz <voice_id> [modelo]      escolhe a voz
 telegram_voz.py modo <chat_id> [texto|audio] lê ou troca o modo de resposta do chat
 telegram_voz.py digitando [parar]            hook: mantém o "digitando" ligado enquanto a sessão trabalha
 telegram_voz.py reiniciar                    zera a sessão do Telegram depois do turno atual
-telegram_voz.py menu                         registra /zerar e /sessoes no menu do bot, no escopo do seu chat
+telegram_voz.py saude                        bot, VoiceStudio e sessões em segundo plano, sem mexer em nada
+telegram_voz.py menu                         registra /zerar, /sessoes e /saude no menu do bot, no escopo do seu chat
 telegram_voz.py --demo                       auto-check, sem rede
 ```
 
@@ -121,6 +122,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 | **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta em texto puro, com até 800 caracteres e cortada no fim de um parágrafo quando há um depois da metade |
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
+| **Saúde** | `/saude` | `telegram_voz.py saude` diz se o bot e o VoiceStudio estão no ar, quantas sessões do Telegram estão abertas e quais sessões em segundo plano esperam por você |
 | **Zerar a conversa** | "zera você" ou `/zerar` | `telegram_voz.py reiniciar` espera o turno acabar, fecha a sessão, reabre pelo `iniciar.cmd`, e o bot avisa que voltou |
 
 ```text

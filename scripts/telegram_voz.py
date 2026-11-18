@@ -239,8 +239,31 @@ def reiniciar_agora() -> None:
     mandar(chat, "Reabri a sessão, mas o bot não subiu em 2 minutos. Confira no PC.")
 
 
+def processo_vivo(pid: str) -> bool:
+    lista = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, errors="replace")
+    return f" {pid} " in lista.stdout
+
+
+def saude() -> None:
+    # Só lê: o VoiceStudio fechado continua fechado (abre no próximo áudio) e nenhuma sessão é tocada.
+    bot = PASTA / "bot.pid"
+    pid = bot.read_text(encoding="utf-8").strip() if bot.exists() else ""
+    linhas = ["Bot: " + ("no ar" if pid and processo_vivo(pid) else "fora") + (f" (pid {pid})" if pid else "")]
+    linhas.append("VoiceStudio: " + ("no ar" if voicestudio_no_ar() else "fechado; abre sozinho no próximo áudio"))
+    r = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    agentes = json.loads(r.stdout or "[]")
+    telegram_abertas = sum(a.get("name") == "telegram" and a.get("kind") == "interactive" for a in agentes)
+    linhas.append(f"Sessões do Telegram: {telegram_abertas}" + ("" if telegram_abertas == 1 else " (o normal é 1; o /zerar recusa)"))
+    fundo = [a for a in agentes if a.get("kind") == "background"]
+    linhas.append(f"Em segundo plano: {len(fundo)}")
+    linhas += [f"  {a['id']} {a.get('state', '?')}{' (esperando você)' if a.get('state') == 'blocked' else ''} · {a.get('name', '')}"
+               for a in fundo]
+    print("\n".join(linhas))
+
+
 MENU = [{"command": "zerar", "description": "Zera esta conversa e volta em cerca de um minuto"},
-        {"command": "sessoes", "description": "Lista as sessões em segundo plano"}]
+        {"command": "sessoes", "description": "Lista as sessões em segundo plano"},
+        {"command": "saude", "description": "Bot, VoiceStudio e sessões esperando você"}]
 
 
 def menu() -> None:
@@ -286,7 +309,8 @@ USO = """uso: telegram_voz.py <comando>
   voz <voice_id> [modelo]            escolhe a voz (padrão: 'default' no motor ativo)
   digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
   reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
-  menu                               registra /zerar e /sessoes no menu do bot (uma vez basta)
+  saude                              bot, VoiceStudio e sessões, sem mexer em nada
+  menu                               registra /zerar, /sessoes e /saude no menu do bot (uma vez basta)
   --demo                             auto-check, sem rede"""
 
 
@@ -319,6 +343,8 @@ def main(argumentos: list[str]) -> None:
         print("reinício agendado: a sessão fecha quando este turno terminar e volta sozinha")
     elif comando == "reiniciar-agora":
         reiniciar_agora()
+    elif comando == "saude":
+        saude()
     elif comando == "menu":
         menu()
     elif comando == "vozes":
