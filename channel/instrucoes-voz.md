@@ -72,7 +72,7 @@ O reinício espera este turno acabar, fecha esta sessão, abre outra e o bot man
 
 ## Trabalho longo
 
-Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que vai fazer. No fim, o resultado no mesmo formato da pergunta.
+Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que vai fazer e guardar o `message_id` que o `reply` devolve. O andamento vai por `edit_message` nessa mesma mensagem, não em mensagens novas. No fim, o resultado em mensagem nova (edição não gera notificação no celular), no mesmo formato da pergunta.
 
 ## Comandos do menu
 

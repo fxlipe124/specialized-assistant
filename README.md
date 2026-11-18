@@ -41,7 +41,7 @@ flowchart LR
    OGG/Opus, e o script envia como mensagem de voz nativa.
 
 As regras de comportamento (texto sempre e áudio só para áudio, texto curto e em MarkdownV2, áudio curto e sem markdown, avisar antes
-de trabalho longo) ficam em [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) e
+de trabalho longo e editar essa mesma mensagem com o andamento) ficam em [`channel/instrucoes-voz.md`](channel/instrucoes-voz.md) e
 entram na sessão por `--append-system-prompt-file`.
 
 ## O que tem aqui
