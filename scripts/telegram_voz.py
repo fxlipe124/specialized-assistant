@@ -21,6 +21,7 @@ VOICESTUDIO = os.environ.get("VOICESTUDIO_URL", "http://127.0.0.1:3900").rstrip(
 IDIOMA = os.environ.get("TELEGRAM_VOZ_IDIOMA", "pt")
 APP = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "VoiceStudio" / "VoiceStudio.exe"
 APP_ESPERA = 6 * 60  # 17/11/2026: do clique à porta dar 200 levou ~3 min
+SILENCIO_DB = -60  # pico até isso é microfone mudo; o piso digital é -91
 DIGITANDO_INTERVALO = 4  # o "digitando" do Telegram some sozinho em ~5 s
 DIGITANDO_TETO = 15 * 60  # ponytail: teto fixo se o Stop não vier; turno mais longo que isso perde o indicador
 
@@ -104,7 +105,18 @@ def modo(chat_id: str, novo: str | None = None) -> str:
     return ler_estado(f"{chat_id}.modo", "texto")
 
 
+def pico_db(saida_ffmpeg: str) -> float | None:
+    m = re.search(r"max_volume: (\S+) dB", saida_ffmpeg)
+    return float(m.group(1)) if m else None  # float() aceita o "-inf" do silêncio absoluto
+
+
 def transcrever(caminho: str) -> str:
+    # 17/11/2026: três áudios mudos (-91 dB do começo ao fim) viraram transcrição vazia e um "repete?" sem causa.
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", caminho, "-af", "volumedetect", "-f", "null", "-"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    pico = pico_db(r.stderr)
+    if pico is not None and pico <= SILENCIO_DB:
+        sys.exit(f"áudio mudo: pico de {pico:.0f} dB, nada foi captado. Confira o microfone do Telegram no celular e grave de novo.")
     conteudo = Path(caminho).read_bytes()
     garantir_voicestudio()
     corpo, tipo = multipart({"language": IDIOMA}, {"file": (Path(caminho).name, conteudo, "application/octet-stream")})
@@ -254,6 +266,8 @@ def demo() -> None:
     fronteira = tipo.split("boundary=")[1]
     assert corpo.startswith(f"--{fronteira}\r\n".encode()) and corpo.endswith(f"--{fronteira}--\r\n".encode())
     assert b'name="voice"; filename="v.ogg"' in corpo and b"\x00\x01\r\n" in corpo
+    assert pico_db("[Parsed_volumedetect_0 @ 0x1] max_volume: -91.0 dB\n") == -91.0
+    assert pico_db("max_volume: -inf dB") == float("-inf") and pico_db("Invalid data found") is None
     with tempfile.TemporaryDirectory() as pasta:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"

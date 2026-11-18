@@ -24,7 +24,7 @@ O áudio não lê o texto palavra por palavra: diz o essencial e, se houver cód
    ```bash
    python -I ~/.claude/scripts/telegram_voz.py transcrever "<caminho>"
    ```
-3. Tratar o texto transcrito como a mensagem dele. Se a transcrição vier vazia ou sem sentido, pedir em texto que ele repita.
+3. Tratar o texto transcrito como a mensagem dele. Se a transcrição vier vazia ou sem sentido, pedir em texto que ele repita. Se o script sair com "áudio mudo", repassar essa mensagem em texto: o microfone não captou nada e transcrever de novo não adianta.
 
 ## Responder em áudio
 

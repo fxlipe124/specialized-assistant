@@ -93,7 +93,7 @@ Depois:
 ## O script de voz
 
 ```text
-telegram_voz.py transcrever <arquivo>        imprime o texto do áudio
+telegram_voz.py transcrever <arquivo>        imprime o texto do áudio; recusa áudio mudo (pico até -60 dB)
 telegram_voz.py falar <chat_id> [reply_to]   lê o texto do stdin e manda como mensagem de voz
 telegram_voz.py amostra <arquivo.ogg>        lê o texto do stdin e grava o áudio, sem Telegram
 telegram_voz.py vozes                        lista as vozes do VoiceStudio
