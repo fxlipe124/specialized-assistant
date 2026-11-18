@@ -125,6 +125,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 | **Sessões do app Desktop** | "manda para a sessão X..." | A sessão do Telegram entrega a mensagem pela ferramenta `SendMessage`, direto na sessão aberta no app, sem cópia |
 | **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta num bloco recolhível, com até 3000 caracteres: o Telegram mostra 3 linhas e abre o resto no toque |
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
+| **Rascunho ao vivo** | Aparece sozinho | A cada ferramenta, um rascunho no chat diz o que a sessão está fazendo ("Lendo telegram_voz.py", ou a descrição do comando, nunca o comando). Ele some quando a resposta chega |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
 | **Saúde** | `/saude` | `telegram_voz.py saude` diz se o bot e o VoiceStudio estão no ar, quantas sessões do Telegram estão abertas e quais sessões em segundo plano esperam por você |
 | **Arquivos** | "me manda o PDF" | A sessão anexa o arquivo pelo `files` do `reply`: imagem chega como foto, o resto como documento, até 50 MB |

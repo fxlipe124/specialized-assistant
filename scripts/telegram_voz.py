@@ -23,6 +23,7 @@ APP = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "VoiceStudio" / "V
 APP_ESPERA = 6 * 60  # 17/11/2026: do clique à porta dar 200 levou ~3 min
 SILENCIO_DB = -60  # pico até isso é microfone mudo; o piso digital é -91
 DIGITANDO_INTERVALO = 4  # o "digitando" do Telegram some sozinho em ~5 s
+PENSANDO = "pensando"  # status que vira o rascunho vazio: no Telegram Desktop, uma bolha de reticências (18/11/2026)
 DIGITANDO_TETO = 15 * 60  # ponytail: teto fixo se o Stop não vier; turno mais longo que isso perde o indicador
 
 
@@ -191,7 +192,25 @@ def chat_do_hook(evento: dict) -> str | None:
     return str(permitidos[0]) if len(permitidos) == 1 else None
 
 
+def andamento(evento: dict) -> str:
+    """Linha do rascunho ao vivo para a ferramenta que vai rodar; "" esconde o rascunho, PENSANDO mostra a bolha vazia."""
+    nome, entrada = evento.get("tool_name", ""), evento.get("tool_input") or {}
+    if not nome:
+        return PENSANDO  # UserPromptSubmit: ainda nenhuma ferramenta
+    if "telegram" in nome:
+        return ""  # reply e cia.: a mensagem apaga o rascunho, e o laço não pode trazê-lo de volta logo depois
+    arquivo = Path(entrada.get("file_path") or entrada.get("notebook_path") or "").name
+    linha = {"Bash": entrada.get("description") or "Rodando um comando",
+             "Read": f"Lendo {arquivo}", "Edit": f"Editando {arquivo}", "Write": f"Escrevendo {arquivo}",
+             "NotebookEdit": f"Editando {arquivo}", "Grep": f"Procurando \"{entrada.get('pattern', '')[:40]}\"",
+             "Glob": "Procurando arquivos", "WebFetch": f"Lendo {urllib.parse.urlsplit(entrada.get('url', '')).netloc}",
+             "WebSearch": f"Pesquisando \"{entrada.get('query', '')[:40]}\"",
+             "Agent": entrada.get("description") or "Delegando a um subagente"}.get(nome, nome.split("__")[-1])
+    return linha[:200]  # o Bash leva a descrição que a sessão escreve, nunca o comando; as reticências o Telegram anima
+
+
 def digitando(evento: dict) -> None:
+    gravar_estado("digitando_status", andamento(evento))
     marca = ESTADO / "digitando"
     if marca.exists() and marca.read_text(encoding="utf-8") and time.time() - marca.stat().st_mtime < 3 * DIGITANDO_INTERVALO:
         return  # laço vivo: ele regrava a marca a cada envio
@@ -208,10 +227,15 @@ def digitando(evento: dict) -> None:
 
 def digitando_laco(chat: str, ficha: str) -> None:
     fim = time.time() + DIGITANDO_TETO
+    rascunho = int(ficha[:7], 16) + 1  # o mesmo id no turno inteiro: o Telegram anima a troca de texto em vez de piscar
     while time.time() < fim and ler_estado("digitando", "") == ficha:
         try:
             acao = ler_estado("digitando_acao", "typing")
             telegram("sendChatAction", json.dumps({"chat_id": chat, "action": acao}).encode())
+            if status := ler_estado("digitando_status", ""):
+                # O rascunho vive 30 s e some quando o bot manda mensagem; reenviado a cada 4 s, dura o turno.
+                texto = "" if status == PENSANDO else status
+                telegram("sendMessageDraft", json.dumps({"chat_id": int(chat), "draft_id": rascunho, "text": texto}).encode())
         except (SystemExit, OSError):
             pass  # falha de rede num envio não derruba o indicador
         if ler_estado("digitando", "") != ficha:
@@ -304,6 +328,11 @@ def demo() -> None:
     assert pico_db("max_volume: -inf dB") == float("-inf") and pico_db("Invalid data found") is None
     assert escapar("a.b (c) 1-2 x_y \\") == "a\\.b \\(c\\) 1\\-2 x\\_y \\\\"
     assert recolhido("um.\n\ndois") == "**>um\\.\n>\n>dois||"
+    assert andamento({"prompt": "oi"}) == PENSANDO
+    assert andamento({"tool_name": "Bash", "tool_input": {"command": "rm x", "description": "Roda os testes"}}) == "Roda os testes"
+    assert andamento({"tool_name": "Read", "tool_input": {"file_path": "C:/a/b/telegram_voz.py"}}) == "Lendo telegram_voz.py"
+    assert andamento({"tool_name": "mcp__plugin_telegram_telegram__reply", "tool_input": {}}) == ""
+    assert andamento({"tool_name": "mcp__x__busca", "tool_input": {}}) == "busca"
     with tempfile.TemporaryDirectory() as pasta:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"
@@ -346,6 +375,7 @@ def main(argumentos: list[str]) -> None:
     elif comando == "digitando":  # hook: UserPromptSubmit e PreToolUse ligam, Stop desliga
         if resto == ["parar"]:
             gravar_estado("digitando", "")
+            gravar_estado("digitando_status", "")
         else:
             digitando(json.loads(sys.stdin.buffer.read() or b"{}"))
     elif comando == "digitando-laco" and len(resto) == 2:
