@@ -30,7 +30,8 @@ FIM
 
 - Escrever para ser ouvido: frases curtas, sem markdown, sem emoji, sem lista com marcador, sem contrabarra.
 - Resposta longa: o áudio leva o resumo (até uns 40 segundos de fala) e o detalhe vai em texto.
-- Se o script falhar (VoiceStudio fechado ou porta 3900 sem resposta), responder em texto e avisar numa linha que a voz está fora.
+- Com o VoiceStudio fechado, `transcrever` e `falar` abrem o app sozinhos e esperam o motor subir (uns 3 min, teto de 6). Por isso chamar o script com `timeout: 420000` no Bash; o padrão de 2 min mata a espera no meio.
+- Se o script falhar mesmo assim, responder em texto e avisar numa linha que a voz está fora.
 
 ## Sessões novas
 

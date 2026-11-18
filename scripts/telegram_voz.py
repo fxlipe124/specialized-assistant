@@ -19,6 +19,8 @@ PASTA = Path(os.environ.get("TELEGRAM_STATE_DIR") or Path.home() / ".claude" / "
 ESTADO = PASTA / "state"
 VOICESTUDIO = os.environ.get("VOICESTUDIO_URL", "http://127.0.0.1:3900").rstrip("/")
 IDIOMA = os.environ.get("TELEGRAM_VOZ_IDIOMA", "pt")
+APP = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "VoiceStudio" / "VoiceStudio.exe"
+APP_ESPERA = 6 * 60  # 17/11/2026: do clique à porta dar 200 levou ~3 min
 DIGITANDO_INTERVALO = 4  # o "digitando" do Telegram some sozinho em ~5 s
 DIGITANDO_TETO = 15 * 60  # ponytail: teto fixo se o Stop não vier; turno mais longo que isso perde o indicador
 
@@ -57,6 +59,31 @@ def requisitar(url: str, cabecalhos: dict, corpo: bytes | None = None) -> bytes:
         sys.exit(f"HTTP {erro.code} em {urllib.parse.urlsplit(url).netloc}: {erro.read().decode('utf-8', 'replace')[:800]}")
 
 
+def voicestudio_no_ar() -> bool:
+    try:
+        with urllib.request.urlopen(f"{VOICESTUDIO}/health", timeout=5) as resposta:
+            return resposta.status == 200
+    except OSError:  # recusa (app fechado) e 503 "[starting]" (motor subindo) contam como fora
+        return False
+
+
+def garantir_voicestudio() -> None:
+    """Com o app fechado a primeira chamada sempre falhava (porta recusada): abre o app e espera o motor."""
+    if voicestudio_no_ar():
+        return
+    lista = subprocess.run(["tasklist", "/FI", "IMAGENAME eq VoiceStudio.exe", "/NH"], capture_output=True, text=True, errors="replace")
+    if "VoiceStudio.exe" not in lista.stdout:
+        # Pelo explorer o app nasce fora da árvore desta sessão; filho dela, o taskkill /T do reinício o mataria junto.
+        subprocess.Popen(["explorer.exe", str(APP)])
+        print("VoiceStudio estava fechado: abri e estou esperando o motor subir (~3 min)", file=sys.stderr, flush=True)
+    fim = time.time() + APP_ESPERA
+    while time.time() < fim:
+        time.sleep(5)
+        if voicestudio_no_ar():
+            return
+    sys.exit(f"VoiceStudio não respondeu em {APP_ESPERA // 60} min em {VOICESTUDIO}/health")
+
+
 def ler_estado(nome: str, padrao: str) -> str:
     arquivo = ESTADO / nome
     return arquivo.read_text(encoding="utf-8").strip() if arquivo.exists() else padrao
@@ -77,6 +104,7 @@ def modo(chat_id: str, novo: str | None = None) -> str:
 
 def transcrever(caminho: str) -> str:
     conteudo = Path(caminho).read_bytes()
+    garantir_voicestudio()
     corpo, tipo = multipart({"language": IDIOMA}, {"file": (Path(caminho).name, conteudo, "application/octet-stream")})
     resposta = requisitar(f"{VOICESTUDIO}/v1/audio/transcriptions", {"Content-Type": tipo}, corpo)
     return json.loads(resposta)["text"].strip()
@@ -87,6 +115,7 @@ def sintetizar(texto: str, destino: Path) -> None:
     pedido = {"input": texto, "language": IDIOMA, "response_format": "mp3", "voice": voz.get("voice", "default")}
     if voz.get("model"):
         pedido["model"] = voz["model"]
+    garantir_voicestudio()
     mp3 = requisitar(f"{VOICESTUDIO}/v1/audio/speech", {"Content-Type": "application/json"}, json.dumps(pedido).encode())
     with tempfile.TemporaryDirectory() as pasta:
         entrada = Path(pasta) / "voz.mp3"
@@ -196,6 +225,7 @@ def reiniciar_agora() -> None:
 
 
 def vozes() -> None:
+    garantir_voicestudio()
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
     for voz in dados.get("voices", []) if isinstance(dados, dict) else dados:
         print(f"{voz.get('voice_id')}  {voz.get('name')}  {voz.get('type', '')}  {voz.get('language') or ''}".rstrip())

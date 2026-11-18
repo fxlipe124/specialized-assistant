@@ -83,7 +83,8 @@ Depois:
    <nul set /p "=TELEGRAM_BOT_TOKEN=<seu token>" > "%USERPROFILE%\.claude\channels\telegram\.env"
    ```
 3. **Pasta de trabalho**: edite `PASTA_DE_TRABALHO` no `iniciar.cmd`.
-4. **VoiceStudio**: abra o app e espere a API responder em `http://127.0.0.1:3900`.
+4. **VoiceStudio**: instale em `%LOCALAPPDATA%\Programs\VoiceStudio`. Com o app fechado, o script o abre e
+   espera a API responder em `http://127.0.0.1:3900` (cerca de 3 min, teto de 6).
 5. **Rode** `iniciar.cmd`, mande uma DM ao bot e pareie com `/telegram:access pair <codigo>`.
    Tranque com `/telegram:access policy allowlist`.
 
@@ -133,7 +134,7 @@ No PC, qualquer sessão aberta assim abre no terminal com `claude attach <id>`.
 ## VoiceStudio
 
 App desktop que expõe, em `127.0.0.1:3900`, uma API compatível com a da OpenAI
-(`/v1/audio/transcriptions` e `/v1/audio/speech`). Só responde com o app aberto. Testado na
+(`/v1/audio/transcriptions` e `/v1/audio/speech`). Só responde com o app aberto, e o motor leva cerca de 3 min para subir. Testado na
 versão 0.5.7, com o Whisper large-v3 Turbo na transcrição.
 
 > [!WARNING]
