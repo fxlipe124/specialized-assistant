@@ -123,6 +123,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
 | **Saúde** | `/saude` | `telegram_voz.py saude` diz se o bot e o VoiceStudio estão no ar, quantas sessões do Telegram estão abertas e quais sessões em segundo plano esperam por você |
+| **Arquivos** | "me manda o PDF" | A sessão anexa o arquivo pelo `files` do `reply`: imagem chega como foto, o resto como documento, até 50 MB |
 | **Zerar a conversa** | "zera você" ou `/zerar` | `telegram_voz.py reiniciar` espera o turno acabar, fecha a sessão, reabre pelo `iniciar.cmd`, e o bot avisa que voltou |
 
 ```text
