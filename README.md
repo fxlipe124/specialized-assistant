@@ -74,6 +74,10 @@ python -I "%USERPROFILE%\.claude\scripts\telegram_voz.py" --demo
 python -I "%USERPROFILE%\.claude\scripts\claude_sessoes.py" --demo
 ```
 
+Para que cada `git pull` valha na hora, ligue a pasta dos scripts ao clone em vez de copiá-los: sem a
+pasta `scripts` no `mkdir` e sem o `copy` dela, rode `mklink /J "%USERPROFILE%\.claude\scripts" "%CD%\scripts"`.
+A junção dispensa administrador, ao contrário do link simbólico de arquivo.
+
 Depois:
 
 1. **Plugin**: numa sessão do Claude Code, `/plugin install telegram@claude-plugins-official`.
