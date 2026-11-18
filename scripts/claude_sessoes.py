@@ -153,10 +153,12 @@ def demo() -> None:
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")  # o sys.exit(msg) sai por aqui; sem isso, "sess�es" no Telegram
+    entrada = lambda: sys.stdin.buffer.read().decode("utf-8").strip()  # sys.stdin.read() decodifica em cp1252: "SÃ³"
     a = sys.argv[1:]
     match a:
-        case ["nova", nome, pasta]: nova(nome, pasta, sys.stdin.read().strip())
-        case ["enviar", ident]: enviar(ident, sys.stdin.read().strip())
+        case ["nova", nome, pasta]: nova(nome, pasta, entrada())
+        case ["enviar", ident]: enviar(ident, entrada())
         case ["ler", ident]: ler(ident)
         case ["listar"]: [print(f"{s['id']}  {s.get('state', '?'):8} {s.get('name', '')}  ({s['cwd']})") for s in sessoes()]
         case ["parar", ident]: print(claude("stop", sessao(ident)["id"]))
