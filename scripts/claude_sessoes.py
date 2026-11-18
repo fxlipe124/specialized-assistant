@@ -109,6 +109,20 @@ def enviar(ident: str, mensagem: str) -> None:
     print(saida)
 
 
+def texto_puro(md: str, teto: int = 800) -> str:
+    """O aviso sai em texto puro: o markdown da sessão aparecia cru no Telegram (17/11/2026: **, ##, crases).
+    Corta no último parágrafo antes do teto, para não partir frase no meio."""
+    t = re.sub(r"^```\w*\n?|^```$", "", md, flags=re.M)
+    t = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", t)
+    t = re.sub(r"^#{1,6}\s+", "", t, flags=re.M)
+    t = re.sub(r"\*\*(.+?)\*\*|__(.+?)__", lambda m: m.group(1) or m.group(2), t)
+    t = t.replace("`", "").strip()
+    if len(t) <= teto:
+        return t
+    corte = t.rfind("\n\n", 0, teto)
+    return t[:corte if corte > teto // 2 else teto].rstrip() + " […]"
+
+
 def avisar(evento: dict) -> None:
     sys.path.insert(0, str(Path(__file__).parent))  # -I tira a pasta do script do sys.path
     import telegram_voz
@@ -119,9 +133,10 @@ def avisar(evento: dict) -> None:
         return
     sid = evento.get("session_id", "")
     nome = next((a.get("name", "") for a in sessoes() if a["sessionId"] == sid), "")
-    resposta = ultima_resposta(transcript.open(encoding="utf-8")) or "(sem texto)"
-    if len(resposta) > 1500:
-        resposta = resposta[:1500] + f"…\n\n(resposta inteira: ler {sid[:8]})"
+    bruta = ultima_resposta(transcript.open(encoding="utf-8")) or "(sem texto)"
+    resposta = texto_puro(bruta)
+    if len(resposta) < len(bruta) * 0.9:  # cortou de fato, não só tirou marcação
+        resposta += f"\n\n(resposta inteira: peça \"ler {sid[:8]}\")"
     telegram_voz.mandar(chat, f"Sessão {nome} ({sid[:8]}) terminou:\n\n{resposta}")
 
 
@@ -148,6 +163,9 @@ def demo() -> None:
              {"id": "04d53cab", "sessionId": "04d53cab-41", "name": "cópias 7c95fcba e 9875295e"}]
     assert [a["id"] for a in filtrar(lista, "9875295e")] == ["9875295e"]
     assert [a["id"] for a in filtrar(lista, "anuncios")] == ["9875295e"]
+    assert texto_puro("## Feito\n**ok** em `a.py`, ver [doc](http://x)\n```bash\nls\n```") == "Feito\nok em a.py, ver doc (http://x)\nls"
+    longo = texto_puro("a" * 500 + "\n\n" + "b" * 500)
+    assert longo == "a" * 500 + " […]", longo[-20:]
     print("demo ok")
 
 

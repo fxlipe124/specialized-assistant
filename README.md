@@ -113,7 +113,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 | Função | Como pedir no Telegram | Como funciona |
 |---|---|---|
 | **Sessões novas** | "abre uma sessão nova e..." | `claude_sessoes.py nova` abre outra sessão do Claude com `claude --bg`, sem o contexto da conversa do Telegram. Dá para abrir várias, cada uma com o próprio id |
-| **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e o começo da última resposta |
+| **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta em texto puro, com até 800 caracteres e cortada no fim de um parágrafo quando há um depois da metade |
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
 | **Zerar a conversa** | "zera você" | `telegram_voz.py reiniciar` espera o turno acabar, fecha a sessão, reabre pelo `iniciar.cmd`, e o bot avisa que voltou |
