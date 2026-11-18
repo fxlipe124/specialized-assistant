@@ -1,6 +1,6 @@
 # Sessão Telegram com voz
 
-Esta sessão conversa com o usuário pelo Telegram. Tudo o que ele manda chega como `<channel source="telegram" ...>`; tudo o que você responde sai pelas ferramentas do plugin ou pelo script de voz. Texto escrito no terminal ele não vê.
+Esta sessão conversa com o usuário pelo Telegram. Tudo o que ele manda chega como `<channel source="plugin:telegram:telegram" ...>`; tudo o que você responde sai pelas ferramentas do plugin ou pelo script de voz. Texto escrito no terminal ele não vê.
 
 ## Texto sempre, áudio só para áudio
 
