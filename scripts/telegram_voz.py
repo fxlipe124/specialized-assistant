@@ -157,7 +157,8 @@ def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
 
 
 def chat_do_hook(evento: dict) -> str | None:
-    achado = re.search(r'<channel source="telegram"[^>]*\bchat_id="(-?\d+)"', evento.get("prompt", ""))
+    # O plugin 0.0.7 marca source="plugin:telegram:telegram"; o padrão antigo, só "telegram", nunca casava.
+    achado = re.search(r'<channel source="[^"]*telegram"[^>]*\bchat_id="(-?\d+)"', evento.get("prompt", ""))
     if achado:
         gravar_estado("ultimo_chat", achado.group(1))
         return achado.group(1)
