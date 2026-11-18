@@ -323,6 +323,18 @@ def perguntar(chat_id: str, pergunta: str, opcoes: list[str]) -> None:
     telegram("sendMessage", json.dumps({"chat_id": chat_id, "text": pergunta, "reply_markup": teclado(opcoes)}).encode())
 
 
+PERFIL = {"setMyShortDescription": {"short_description": "Claude Code no seu computador, por texto e áudio."},
+          "setMyDescription": {"description": "Converse com o Claude Code que roda no seu computador, por texto ou áudio: "
+                               "ele lê e edita arquivos, roda comandos e abre sessões em segundo plano. "
+                               "Só atende quem está na lista de acesso do dono."}}
+
+
+def perfil() -> None:
+    for metodo, corpo in PERFIL.items():
+        telegram(metodo, json.dumps(corpo).encode())
+    print("perfil gravado: descrição curta e descrição do chat vazio")
+
+
 def vozes() -> None:
     garantir_voicestudio()
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
@@ -346,6 +358,8 @@ def demo() -> None:
     assert andamento({"tool_name": "mcp__plugin_telegram_telegram__reply", "tool_input": {}}) == ""
     assert andamento({"tool_name": "mcp__x__busca", "tool_input": {}}) == "busca"
     assert [b.get("style") for b in teclado(["Sobe", "Ainda não"])["keyboard"][0]] == ["primary", None]
+    assert all(len(c) <= limite for c, limite in ((PERFIL["setMyShortDescription"]["short_description"], 120),
+                                                  (PERFIL["setMyDescription"]["description"], 512)))
     with tempfile.TemporaryDirectory() as pasta:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"
@@ -366,6 +380,7 @@ USO = """uso: telegram_voz.py <comando>
   reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
   saude                              bot, VoiceStudio e sessões, sem mexer em nada
   perguntar <chat_id> <opção>...     lê a pergunta do stdin e manda com um botão por opção (a primeira sai azul)
+  perfil                             grava a descrição do bot (uma vez basta)
   menu                               registra /zerar, /sessoes e /saude no menu do bot (uma vez basta)
   --demo                             auto-check, sem rede"""
 
@@ -404,6 +419,8 @@ def main(argumentos: list[str]) -> None:
         saude()
     elif comando == "perguntar" and len(resto) >= 2:
         perguntar(resto[0], sys.stdin.buffer.read().decode("utf-8").strip(), resto[1:])
+    elif comando == "perfil":
+        perfil()
     elif comando == "menu":
         menu()
     elif comando == "vozes":

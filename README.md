@@ -91,7 +91,7 @@ Depois:
    espera a API responder em `http://127.0.0.1:3900` (cerca de 3 min, teto de 6).
 5. **Rode** `iniciar.cmd`, mande uma DM ao bot e pareie com `/telegram:access pair <codigo>`.
    Tranque com `/telegram:access policy allowlist`.
-6. **Menu**: rode `telegram_voz.py menu` uma vez para pôr `/zerar`, `/sessoes` e `/saude` no botão de menu do bot. O
+6. **Menu e perfil**: rode `telegram_voz.py perfil` uma vez para gravar a descrição do bot, e `telegram_voz.py menu` para pôr `/zerar`, `/sessoes` e `/saude` no botão de menu do bot. O
    plugin regrava o menu dele a cada subida, mas só no escopo geral; o do seu chat tem prioridade e fica.
 
 ## O script de voz
@@ -107,6 +107,7 @@ telegram_voz.py digitando [parar]            hook: mantém o "digitando" ligado 
 telegram_voz.py reiniciar                    zera a sessão do Telegram depois do turno atual
 telegram_voz.py saude                        bot, VoiceStudio e sessões em segundo plano, sem mexer em nada
 telegram_voz.py perguntar <chat_id> <opção>… pergunta pelo stdin, um botão por opção (a primeira sai azul)
+telegram_voz.py perfil                       grava a descrição do bot
 telegram_voz.py menu                         registra /zerar, /sessoes e /saude no menu do bot, no escopo do seu chat
 telegram_voz.py --demo                       auto-check, sem rede
 ```
