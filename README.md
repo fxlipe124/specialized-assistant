@@ -123,7 +123,7 @@ telegram_voz.py --demo                       auto-check, sem rede
 |---|---|---|
 | **Sessões novas** | "abre uma sessão nova e..." | `claude_sessoes.py nova` abre outra sessão do Claude com `claude --bg`, sem o contexto da conversa do Telegram. Dá para abrir várias, cada uma com o próprio id |
 | **Sessões do app Desktop** | "manda para a sessão X..." | A sessão do Telegram entrega a mensagem pela ferramenta `SendMessage`, direto na sessão aberta no app, sem cópia |
-| **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta em texto puro, com até 800 caracteres e cortada no fim de um parágrafo quando há um depois da metade |
+| **Aviso de fim** | Chega sozinho | Cada sessão aberta pelo `nova` leva um hook `Stop` que manda ao Telegram o nome, o id e a última resposta num bloco recolhível, com até 3000 caracteres: o Telegram mostra 3 linhas e abre o resto no toque |
 | **"Digitando" contínuo** | Aparece sozinho | O plugin manda `typing` uma vez, e o Telegram o apaga em cerca de 5 s; os hooks da sessão o renovam a cada 4 s até o turno acabar |
 | **"Gravando áudio"** | Aparece sozinho | Durante a síntese da voz, o indicador vira `record_voice` |
 | **Saúde** | `/saude` | `telegram_voz.py saude` diz se o bot e o VoiceStudio estão no ar, quantas sessões do Telegram estão abertas e quais sessões em segundo plano esperam por você |

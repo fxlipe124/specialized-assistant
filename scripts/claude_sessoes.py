@@ -134,10 +134,14 @@ def avisar(evento: dict) -> None:
     sid = evento.get("session_id", "")
     nome = next((a.get("name", "") for a in sessoes() if a["sessionId"] == sid), "")
     bruta = ultima_resposta(transcript.open(encoding="utf-8")) or "(sem texto)"
-    resposta = texto_puro(bruta)
-    if len(resposta) < len(bruta) * 0.9:  # cortou de fato, não só tirou marcação
-        resposta += f"\n\n(resposta inteira: peça \"ler {sid[:8]}\")"
-    telegram_voz.mandar(chat, f"Sessão {nome} ({sid[:8]}) terminou:\n\n{resposta}")
+    resposta = texto_puro(bruta, teto=3000)  # vai recolhida: o teto agora é o dos 4096 do Telegram, não o da tela
+    nota = f"\n(resposta inteira: peça \"ler {sid[:8]}\")" if len(resposta) < len(bruta) * 0.9 else ""  # cortou de fato
+    cabecalho = f"Sessão {nome} ({sid[:8]}) terminou:"
+    try:
+        telegram_voz.mandar(chat, f"*{telegram_voz.escapar(cabecalho)}*\n{telegram_voz.recolhido(resposta)}{telegram_voz.escapar(nota)}",
+                            markdown=True)
+    except SystemExit:  # se o Telegram recusar o MarkdownV2, a notícia ainda chega em texto puro
+        telegram_voz.mandar(chat, f"{cabecalho}\n\n{resposta}{nota}")
 
 
 def ler(ident: str) -> None:

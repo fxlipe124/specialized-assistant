@@ -144,8 +144,19 @@ def telegram(metodo: str, corpo: bytes, tipo: str = "application/json") -> None:
         sys.exit(f"Telegram recusou: {resultado.get('description')}")
 
 
-def mandar(chat_id: str, texto: str) -> None:
-    telegram("sendMessage", json.dumps({"chat_id": chat_id, "text": texto[:4096]}).encode())
+def mandar(chat_id: str, texto: str, markdown: bool = False) -> None:
+    # Em MarkdownV2 o teto de 4096 vale depois do parse; cortar o texto escapado partiria uma entidade.
+    pedido = {"chat_id": chat_id, "text": texto, "parse_mode": "MarkdownV2"} if markdown else {"chat_id": chat_id, "text": texto[:4096]}
+    telegram("sendMessage", json.dumps(pedido).encode())
+
+
+def escapar(texto: str) -> str:
+    return re.sub(r"([_*\[\]()~`>#+\-=|{}.!\\])", r"\\\1", texto)
+
+
+def recolhido(texto: str) -> str:
+    # Bloco recolhível do MarkdownV2: o Telegram mostra 3 linhas e abre o resto no toque (testado em 18/11/2026).
+    return "**" + "\n".join(">" + escapar(linha) for linha in texto.split("\n")) + "||"
 
 
 def falar(chat_id: str, texto: str, responder_a: str | None = None) -> None:
@@ -291,6 +302,8 @@ def demo() -> None:
     assert b'name="voice"; filename="v.ogg"' in corpo and b"\x00\x01\r\n" in corpo
     assert pico_db("[Parsed_volumedetect_0 @ 0x1] max_volume: -91.0 dB\n") == -91.0
     assert pico_db("max_volume: -inf dB") == float("-inf") and pico_db("Invalid data found") is None
+    assert escapar("a.b (c) 1-2 x_y \\") == "a\\.b \\(c\\) 1\\-2 x\\_y \\\\"
+    assert recolhido("um.\n\ndois") == "**>um\\.\n>\n>dois||"
     with tempfile.TemporaryDirectory() as pasta:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"
