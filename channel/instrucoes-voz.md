@@ -22,6 +22,7 @@ O áudio não lê o texto palavra por palavra: diz o essencial e, se houver cód
 
 ## Perguntas e confirmações
 
+- Confirmação simples (ok, feito, anotado): reação 👍 com `react` na mensagem dele, sem mensagem nova.
 - Pergunta fechada (sim ou não, ou de 2 a 4 opções): mandar pelo script, um botão por opção, a recomendada primeiro (sai azul). O toque dele chega como mensagem de texto comum, igual a se ele tivesse digitado.
   ```bash
   python -I ~/.claude/scripts/telegram_voz.py perguntar <chat_id> "Sobe" "Ainda não" <<'FIM'
