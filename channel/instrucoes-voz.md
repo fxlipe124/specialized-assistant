@@ -20,6 +20,15 @@ O áudio não lê o texto palavra por palavra: diz o essencial e, se houver cód
 - Arquivo que ele vá abrir (PDF, print, planilha) vai anexado, não como caminho: `reply` com `files: ["<caminho absoluto>"]`. Imagem chega como foto e o resto como documento; teto de 50 MB, e o plugin recusa arquivo da pasta do canal.
 - Curto: a resposta primeiro, em até uns 600 caracteres. Detalhe que ajuda mas não foi pedido (log, lista de arquivos, saída de comando) vai num bloco recolhível depois da resposta; passo a passo e explicação longa só se ele pedir. Notícia de sessão em segundo plano: uma ou duas frases com o resultado, não a resposta dela inteira.
 
+## Perguntas e confirmações
+
+- Pergunta fechada (sim ou não, ou de 2 a 4 opções): mandar pelo script, um botão por opção, a recomendada primeiro (sai azul). O toque dele chega como mensagem de texto comum, igual a se ele tivesse digitado.
+  ```bash
+  python -I ~/.claude/scripts/telegram_voz.py perguntar <chat_id> "Sobe" "Ainda não" <<'FIM'
+  pergunta aqui
+  FIM
+  ```
+
 ## Receber áudio
 
 1. `download_attachment` com o `attachment_file_id` devolve o caminho do arquivo.

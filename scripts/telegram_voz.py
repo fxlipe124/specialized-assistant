@@ -311,6 +311,18 @@ def menu() -> None:
     print(f"menu registrado no chat {chat}: " + " ".join("/" + c["command"] for c in MENU))
 
 
+def teclado(opcoes: list[str]) -> dict:
+    # O toque num botão de teclado de resposta chega ao plugin como texto comum; botão inline cairia no handler dele,
+    # que só trata os de permissão. A primeira opção é a recomendada e sai azul.
+    botoes = [{"text": o, "style": "primary"} if i == 0 else {"text": o} for i, o in enumerate(opcoes)]
+    return {"keyboard": [botoes], "one_time_keyboard": True, "resize_keyboard": True,
+            "input_field_placeholder": "Toque numa opção ou escreva"}
+
+
+def perguntar(chat_id: str, pergunta: str, opcoes: list[str]) -> None:
+    telegram("sendMessage", json.dumps({"chat_id": chat_id, "text": pergunta, "reply_markup": teclado(opcoes)}).encode())
+
+
 def vozes() -> None:
     garantir_voicestudio()
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
@@ -333,6 +345,7 @@ def demo() -> None:
     assert andamento({"tool_name": "Read", "tool_input": {"file_path": "C:/a/b/telegram_voz.py"}}) == "Lendo telegram_voz.py"
     assert andamento({"tool_name": "mcp__plugin_telegram_telegram__reply", "tool_input": {}}) == ""
     assert andamento({"tool_name": "mcp__x__busca", "tool_input": {}}) == "busca"
+    assert [b.get("style") for b in teclado(["Sobe", "Ainda não"])["keyboard"][0]] == ["primary", None]
     with tempfile.TemporaryDirectory() as pasta:
         ESTADO = Path(pasta)
         assert modo("42") == "texto"
@@ -352,6 +365,7 @@ USO = """uso: telegram_voz.py <comando>
   digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
   reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
   saude                              bot, VoiceStudio e sessões, sem mexer em nada
+  perguntar <chat_id> <opção>...     lê a pergunta do stdin e manda com um botão por opção (a primeira sai azul)
   menu                               registra /zerar, /sessoes e /saude no menu do bot (uma vez basta)
   --demo                             auto-check, sem rede"""
 
@@ -388,6 +402,8 @@ def main(argumentos: list[str]) -> None:
         reiniciar_agora()
     elif comando == "saude":
         saude()
+    elif comando == "perguntar" and len(resto) >= 2:
+        perguntar(resto[0], sys.stdin.buffer.read().decode("utf-8").strip(), resto[1:])
     elif comando == "menu":
         menu()
     elif comando == "vozes":
