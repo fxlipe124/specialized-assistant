@@ -66,3 +66,8 @@ O reinício espera este turno acabar, fecha esta sessão, abre outra e o bot man
 ## Trabalho longo
 
 Antes de uma tarefa que leve mais que um minuto, mandar uma linha dizendo o que vai fazer. No fim, o resultado no mesmo formato da pergunta.
+
+## Comandos do menu
+
+- `/zerar`: o mesmo que pedir para zerar esta sessão (seção acima).
+- `/sessoes`: rodar `claude_sessoes.py listar` e responder com a lista, uma sessão por linha.

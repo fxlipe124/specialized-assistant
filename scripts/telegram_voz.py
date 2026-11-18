@@ -227,6 +227,20 @@ def reiniciar_agora() -> None:
     mandar(chat, "Reabri a sessão, mas o bot não subiu em 2 minutos. Confira no PC.")
 
 
+MENU = [{"command": "zerar", "description": "Zera esta conversa e volta em cerca de um minuto"},
+        {"command": "sessoes", "description": "Lista as sessões em segundo plano"}]
+
+
+def menu() -> None:
+    # O plugin regrava o menu dele (start/help/status) para todos os chats privados a cada subida;
+    # no escopo de um chat só, que o Telegram prioriza, o nosso sobrevive. A ação de cada um está em instrucoes-voz.md.
+    chat = chat_do_hook({})
+    if not chat:
+        sys.exit("sem chat conhecido: mande uma mensagem ao bot ou deixe um só usuário no allowFrom do access.json")
+    telegram("setMyCommands", json.dumps({"commands": MENU, "scope": {"type": "chat", "chat_id": int(chat)}}).encode())
+    print(f"menu registrado no chat {chat}: " + " ".join("/" + c["command"] for c in MENU))
+
+
 def vozes() -> None:
     garantir_voicestudio()
     dados = json.loads(requisitar(f"{VOICESTUDIO}/v1/audio/voices", {}))
@@ -258,6 +272,7 @@ USO = """uso: telegram_voz.py <comando>
   voz <voice_id> [modelo]            escolhe a voz (padrão: 'default' no motor ativo)
   digitando [parar]                  hook: mantém o "digitando" do Telegram ligado enquanto a sessão trabalha
   reiniciar                          zera a sessão do Telegram depois do turno atual e avisa quando voltar
+  menu                               registra /zerar e /sessoes no menu do bot (uma vez basta)
   --demo                             auto-check, sem rede"""
 
 
@@ -289,6 +304,8 @@ def main(argumentos: list[str]) -> None:
         print("reinício agendado: a sessão fecha quando este turno terminar e volta sozinha")
     elif comando == "reiniciar-agora":
         reiniciar_agora()
+    elif comando == "menu":
+        menu()
     elif comando == "vozes":
         vozes()
     elif comando == "voz" and resto:
